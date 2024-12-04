@@ -1,0 +1,7 @@
+yfinance
+langchain_pinecone
+openai
+python-dotenv
+langchain-community
+sentence_transformers
+newscatcher
