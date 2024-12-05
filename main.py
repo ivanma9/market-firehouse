@@ -1,4 +1,6 @@
+from concurrent.futures import ThreadPoolExecutor
 import time
+from typing import Tuple
 from exceptiongroup import catch
 import requests
 from bs4 import BeautifulSoup
@@ -57,11 +59,38 @@ def get_news_NewsCatcher():
         print("cannot find articles")
 
 
-
-
 def get_news():
-    for page_ct in range(50):
-        get_news_from_page(page_ct)
+    num_requests = 10
+    num_threads = 4
+    print(f"\nMaking {num_requests} concurrent requests...")
+    start = time.time()    
+        
+    with ThreadPoolExecutor(max_workers=num_threads) as executor:
+        list(executor.map(lambda _: fetch_slow_api(), range(num_requests)))
+
+    threaded_time = time.time() - start
+    print(f"Multi-threaded took: {threaded_time:.2f} seconds")
+
+def fetch_slow_api() -> Tuple[int, str]:
+    """Make a request to our slow API and return the status code."""
+    try:
+        print("Starting request...")
+        response = requests.get('http://localhost:5001')
+        response.raise_for_status()
+        try:
+            result = response.json()
+            print(f"Request completed: {result}")
+            return response.status_code, result['message']
+        except ValueError as e:
+            print(f"JSON decode error. Response text: {response.text}")
+            return -1, f"Invalid JSON response: {str(e)}"
+    except requests.RequestException as e:
+        print(f"Request error: {str(e)}")
+        return -1, str(e)
+    except Exception as e:
+        print(f"Unexpected error: {str(e)}")
+        return -1, str(e)
+
 def get_news_from_page(page_ct):
     # Set the API URL
     url = "https://api.thenewsapi.com/v1/news/all"
