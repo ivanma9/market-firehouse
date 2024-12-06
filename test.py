@@ -22,6 +22,8 @@ def scrape_website(start_url):
         "waitBeforeScraping": 1,
         "removeCSSselectors": 'none',
         "nodeCountry": "US",
+        "extractLinks": True,
+        "absoluteLinks": True,
     }
     json_response = make_request(endpoint, params=query_params)
     if json_response is None:
@@ -54,7 +56,7 @@ def start():
         "https://bitcoin.org/bitcoin.pdf",
         "https://www.mesacounty.us/sites/default/files/2022-12/land-development-code-mesa-county-2020-land-development-code-amended-june-28-2022.pdf",
         "https://interscope.com/",
-        "https://www.vento.ventures/"
+        "https://api.thenewsapi.com/v1/news/all"
     ]
 
     for url in urls_to_test:

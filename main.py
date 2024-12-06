@@ -9,6 +9,8 @@ import http.client, urllib.parse
 from dotenv import load_dotenv
 import os
 
+from webscraper import WebScraper
+
 # Load environment variables from the .env file
 load_dotenv()
 
@@ -65,8 +67,17 @@ def get_news():
     print(f"\nMaking {num_requests} concurrent requests...")
     start = time.time()    
         
-    with ThreadPoolExecutor(max_workers=num_threads) as executor:
-        list(executor.map(lambda _: fetch_slow_api(), range(num_requests)))
+    # with ThreadPoolExecutor(max_workers=num_threads) as executor:
+    #     list(executor.map(lambda _: fetch_slow_api(), range(num_requests)))
+
+    # Run webscraper
+    news_urls = ["https://www.theguardian.com/us-news", "https://www.theguardian.com/us", "https://www.bloomberg.com/economics", "https://www.bloomberg.com/markets","https://www.bloomberg.com/industries", "https://www.bloomberg.com/technology", "https://www.bloomberg.com/politics", "https://www.bloomberg.com/businessweek", "https://www.bloomberg.com/opinion", "https://www.bloomberg.com/deals", "https://www.bloomberg.com/markets/fixed-income", "https://www.bloomberg.com/factor-investing", "https://www.bloomberg.com/alternative-investments", "https://www.nytimes.com/section/todayspaper", "https://www.economist.com/", "https://www.newyorker.com/latest", "https://www.latimes.com/", "https://www.chicagotribune.com/", "https://www.chicagotribune.com/business/", "https://www.npr.org/sections/news/", "https://www.washingtonpost.com/", "https://www.washingtonpost.com/business/?itid=hp_top_nav_business", "https://news.google.com/home?hl=en-US&gl=US&ceid=US:en", "https://www.wsj.com/", "https://www.wsj.com/news/latest-headlines?mod=nav_top_section", "https://www.forbes.com/", "https://www.forbes.com/trump/", "https://www.forbes.com/business/", "https://www.reuters.com/", "https://www.bbc.com/news", "https://www.telegraph.co.uk/us/news/", "https://fortune.com/the-latest/", "https://www.businessinsider.com/news", "https://financialpost.com/", "https://time.com/", "https://www.newsweek.com/news"] 
+    domain_set = set()
+    for url in news_urls:
+        base_domain = '.'.join(urllib.parse.urlparse(url).netloc.split('.')[-2:])
+        domain_set.add(base_domain)
+    scraper = WebScraper(news_urls, domain_set, max_workers=200)
+    scraper.start()
 
     threaded_time = time.time() - start
     print(f"Multi-threaded took: {threaded_time:.2f} seconds")
