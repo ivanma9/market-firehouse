@@ -3,5 +3,12 @@ Build a system that can handle 100 articles per minute. Your system should be ab
 
 This project is trying to build a handler to get many articles as quick as possible and analyze them to see which would be a good choice to use for market analysis.
 
-This project uses NewsCatcher API to get news
-https://newscatcherapi.com/. 
+To start the scraping of all the news sources:
+I recommend using a virtual environment
+`pip3 install -r requirements.txt`
+`python3 main.py`
+
+In order to view all the markdown articles:
+`python3 read_news_content.py`
+
+This project uses Olostep https://www.olostep.com/

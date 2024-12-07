@@ -2,6 +2,6 @@ yfinance
 langchain_pinecone
 openai
 python-dotenv
-langchain-community
+langchain_huggingface
 sentence_transformers
-newscatcher
+python-dotenv

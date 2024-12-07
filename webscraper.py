@@ -119,6 +119,7 @@ class WebScraper:
 
                     if is_valid:
                         with self.queue_lock:
+                            self.save_to_csv(link, content_id)
                             if link not in self.processed_urls:
                                 new_links.append(link)
                                 self.processed_urls.add(link)
