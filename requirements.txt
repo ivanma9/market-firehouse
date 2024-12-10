@@ -1,6 +1,7 @@
 yfinance
 langchain_pinecone
 openai
+langchain
 python-dotenv
 langchain_huggingface
 sentence_transformers
