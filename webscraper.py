@@ -1,4 +1,5 @@
 import time
+from bs4 import BeautifulSoup
 import requests
 from urllib.parse import urlparse
 import re
@@ -7,8 +8,15 @@ import csv
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import pandas as pd
 from threading import Lock
+import tiktoken
+from embedding import AIModel, extract_text_from_html
 
+encoder = tiktoken.get_encoding("cl100k_base")
 
+def count_tokens(text: str) -> int:
+    """Returns the number of tokens in the input text."""
+    tokens = encoder.encode(text)
+    return len(tokens)
 class WebScraper:
     def __init__(self, initial_urls, domain_set, max_workers=200):
         self.initial_urls = initial_urls
@@ -67,7 +75,7 @@ class WebScraper:
                 with open('urls.csv', 'a', newline='', encoding='utf-8') as f:
                     writer = csv.writer(f)
                     writer.writerow([url, is_valid, reason])
-                print(f"Found URL: {url} (Valid: {is_valid}, Reason: {reason})")
+                # print(f"Found URL: {url} (Valid: {is_valid}, Reason: {reason})")
 
     def scrape_website(self, url):
         print(f"[scrape_website]: Scraping {url}")
@@ -80,18 +88,40 @@ class WebScraper:
             "removeCSSselectors": 'none',
             "nodeCountry": "US",
             "expandHtml": True,
-            "saveMarkdown": True,
             "extractLinks": True,
             "absoluteLinks": True,
         }
         return self.make_request(endpoint, params=query_params)
 
-    def save_to_csv(self, url, content):
+    def save_to_csv(self, url, contentId, content):
         """Save results to CSV file with thread safety"""
         with self.csv_lock:
-            with open('news.csv', 'a', newline='', encoding='utf-8') as f:
-                writer = csv.writer(f)
-                writer.writerow([url, content])
+            #Processing content
+            print("Saving...", url)
+            content = extract_text_from_html(content)
+            
+            token_count = count_tokens(content)
+            print(token_count)
+            if (token_count > 6000):
+                print("Content too many tokens")
+                with open('count.csv', 'a', newline='', encoding='utf-8') as f:
+                    writer = csv.writer(f)
+                    writer.writerow([token_count, url])    
+                return
+            ai = AIModel()
+            if ai.is_article(content):
+                print("ASKING")
+                response = ai.ask(content)    
+                #Writing to news.csv
+                with open('news.csv', 'a', newline='', encoding='utf-8') as f:
+                    writer = csv.writer(f)
+                    writer.writerow([url, contentId, response])
+                return True
+            else:
+                print("NOT an article, continue crawling")
+                return False
+
+
 
     def process_url(self, url):
         """Process a single URL and return new URLs to process"""
@@ -100,11 +130,16 @@ class WebScraper:
             return []
 
         # Save content to CSV
-        #content = json_response.get('markdown_content', '')
-        #print(content)
+        content = json_response.get('html_content', '')
 
         content_id = json_response.get('defaultDatasetId', '')
-        self.save_to_csv(url, content_id)
+        found_article = self.save_to_csv(url, content_id, content)
+
+        if (found_article):
+            is_valid, reason = self.is_valid_url(url)
+            self.log_url(url, is_valid, reason)
+            self.processed_urls.add(url)
+            return
 
         # Get new links
         links = json_response.get('links_on_page', [])
@@ -119,7 +154,7 @@ class WebScraper:
 
                     if is_valid:
                         with self.queue_lock:
-                            self.save_to_csv(link, content_id)
+                            # self.save_to_csv(link, content_id, content)
                             if link not in self.processed_urls:
                                 new_links.append(link)
                                 self.processed_urls.add(link)
@@ -167,7 +202,8 @@ class WebScraper:
 
 
 def main():
-    news_urls = ["https://www.theguardian.com/us-news", "https://www.theguardian.com/us", "https://www.bloomberg.com/economics", "https://www.bloomberg.com/markets","https://www.bloomberg.com/industries", "https://www.bloomberg.com/technology", "https://www.bloomberg.com/politics", "https://www.bloomberg.com/businessweek", "https://www.bloomberg.com/opinion", "https://www.bloomberg.com/deals", "https://www.bloomberg.com/markets/fixed-income", "https://www.bloomberg.com/factor-investing", "https://www.bloomberg.com/alternative-investments", "https://www.nytimes.com/section/todayspaper", "https://www.economist.com/", "https://www.newyorker.com/latest", "https://www.latimes.com/", "https://www.chicagotribune.com/", "https://www.chicagotribune.com/business/", "https://www.npr.org/sections/news/", "https://www.washingtonpost.com/", "https://www.washingtonpost.com/business/?itid=hp_top_nav_business", "https://news.google.com/home?hl=en-US&gl=US&ceid=US:en", "https://www.wsj.com/", "https://www.wsj.com/news/latest-headlines?mod=nav_top_section", "https://www.forbes.com/", "https://www.forbes.com/trump/", "https://www.forbes.com/business/", "https://www.reuters.com/", "https://www.bbc.com/news", "https://www.telegraph.co.uk/us/news/", "https://fortune.com/the-latest/", "https://www.businessinsider.com/news", "https://financialpost.com/", "https://time.com/", "https://www.newsweek.com/news"] 
+    news_urls = ["https://www.theguardian.com/us-news"]
+    # news_urls = ["https://www.theguardian.com/us-news", "https://www.theguardian.com/us", "https://www.bloomberg.com/economics", "https://www.bloomberg.com/markets","https://www.bloomberg.com/industries", "https://www.bloomberg.com/technology", "https://www.bloomberg.com/politics", "https://www.bloomberg.com/businessweek", "https://www.bloomberg.com/opinion", "https://www.bloomberg.com/deals", "https://www.bloomberg.com/markets/fixed-income", "https://www.bloomberg.com/factor-investing", "https://www.bloomberg.com/alternative-investments", "https://www.nytimes.com/section/todayspaper", "https://www.economist.com/", "https://www.newyorker.com/latest", "https://www.latimes.com/", "https://www.chicagotribune.com/", "https://www.chicagotribune.com/business/", "https://www.npr.org/sections/news/", "https://www.washingtonpost.com/", "https://www.washingtonpost.com/business/?itid=hp_top_nav_business", "https://news.google.com/home?hl=en-US&gl=US&ceid=US:en", "https://www.wsj.com/", "https://www.wsj.com/news/latest-headlines?mod=nav_top_section", "https://www.forbes.com/", "https://www.forbes.com/trump/", "https://www.forbes.com/business/", "https://www.reuters.com/", "https://www.bbc.com/news", "https://www.telegraph.co.uk/us/news/", "https://fortune.com/the-latest/", "https://www.businessinsider.com/news", "https://financialpost.com/", "https://time.com/", "https://www.newsweek.com/news"] 
     domain_set = set()
     for url in news_urls:
         base_domain = '.'.join(urlparse(url).netloc.split('.')[-2:])

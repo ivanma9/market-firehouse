@@ -1,13 +1,13 @@
 from concurrent.futures import ThreadPoolExecutor
 import time
 from typing import Tuple
-from exceptiongroup import catch
 import requests
 from bs4 import BeautifulSoup
 import os
 import http.client, urllib.parse
 from dotenv import load_dotenv
 import os
+from embedding import extract_text_from_html
 
 from webscraper import WebScraper
 

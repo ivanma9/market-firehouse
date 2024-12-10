@@ -109,7 +109,7 @@ Brown’s brother in a comment on her final Instagram post wrote: “I wanted to
                 {"role": "user", "content": prompt}
             ]
         )
-
+        print(content)
         response = llm_response.choices[0].message.content
         print(response)
         return response
@@ -181,14 +181,13 @@ def main():
         with open('res.html', 'w') as f:
             f.write(html_content)
         content = extract_text_from_html(html_content)
-        # print(content)
-        soup = BeautifulSoup(html_content, 'html.parser')
         print(len(content))
-        # article_tags = has_author_info(soup)
         ai = AIModel()
         if ai.is_article(content):
             print("ASKING")
-            response = ai.ask(content)
+            ai_response = ai.ask(content)
+            #do something with ai_response
+            
         else:
             print("NOT an article")
         print("Finished ai")
